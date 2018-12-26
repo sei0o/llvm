@@ -369,6 +369,9 @@ def int_assume        : Intrinsic<[], [llvm_i1_ty], []>;
 def int_stackprotector : Intrinsic<[], [llvm_ptr_ty, llvm_ptrptr_ty], []>;
 def int_stackguard : Intrinsic<[llvm_ptr_ty], [], []>;
 
+// MultiCanary Intrinsic
+def int_multicanary : Intrinsic<[], [llvm_ptr_ty, llvm_ptrptr_ty, llvm_anyptr_ty], []>;
+
 // A counter increment for instrumentation based profiling.
 def int_instrprof_increment : Intrinsic<[],
                                         [llvm_ptr_ty, llvm_i64_ty,

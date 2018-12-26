@@ -164,6 +164,10 @@ private:
 
     uint8_t SSPLayout;
 
+    /// The frame index for the MultiCanary value corresponding to this object.
+    int MultiCanaryIndex = -1;
+    // StackObject *MultiCanaryObject = nullptr;
+
     StackObject(uint64_t Size, unsigned Alignment, int64_t SPOffset,
                 bool IsImmutable, bool IsSpillSlot, const AllocaInst *Alloca,
                 bool IsAliased, uint8_t StackID = 0)
@@ -333,6 +337,40 @@ public:
   int getStackProtectorIndex() const { return StackProtectorIdx; }
   void setStackProtectorIndex(int I) { StackProtectorIdx = I; }
   bool hasStackProtectorIndex() const { return StackProtectorIdx != -1; }
+
+  /// Return the index for the MultiCanary value object which corresponds to the object.
+  // StackObject *getMultiCanaryObject(int BufferFI) { return Objects[BufferFI].MultiCanaryObject; }
+  // void setMultiCanaryObject(int BufferFI, int I) {
+  //   Objects[BufferFI].MultiCanaryObject = &Objects[I];
+  // }
+  // bool hasMultiCanaryObject(int BufferFI) {
+  //   return Objects[BufferFI].MultiCanaryObject != nullptr;
+  // }
+  // bool isMultiCanaryIndex(int I) {
+  //   // FIXME: introduce caching indices?
+  //   for (unsigned i = 0; i != getObjectIndexEnd(); ++i) {
+  //     if (getMultiCanaryObject(i) == &Objects[I]) return true;
+  //   }
+  //   return false;
+  // }
+  // int getIndexForObject(StackObject *Obj) {
+  //   return 
+  // }
+  int getMultiCanaryIndex(int BufferFI) { return Objects[BufferFI+NumFixedObjects].MultiCanaryIndex; }
+  void setMultiCanaryIndex(int BufferFI, int I) {
+    Objects[BufferFI+NumFixedObjects].MultiCanaryIndex = I + NumFixedObjects;
+  }
+  bool hasMultiCanaryObject(int BufferFI) {
+    return Objects[BufferFI+NumFixedObjects].MultiCanaryIndex != -1;
+  }
+  bool isMultiCanaryIndex(int I) {
+    // FIXME: introduce caching indices?
+    for (unsigned i = 0; i != getObjectIndexEnd(); ++i) {
+      // if (getMultiCanaryObject(i) == &Objects[I]) return true;
+      if (getMultiCanaryIndex(i) == I) return true;
+    }
+    return false;
+  }
 
   /// Return the index for the function context object.
   /// This object is used for SjLj exceptions.

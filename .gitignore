@@ -5,7 +5,8 @@
 # This file is intentionally different from the output of `git svn show-ignore`,
 # as most of those are useless.
 #==============================================================================#
-
+.gdb_history
+peda*
 #==============================================================================#
 # File extensions to be ignored anywhere in the tree.
 #==============================================================================#

@@ -563,12 +563,20 @@ AdjustStackOffset(MachineFrameInfo &MFI, int FrameIdx,
   if (StackGrowsDown) {
     LLVM_DEBUG(dbgs() << "alloc FI(" << FrameIdx << ") at SP[" << -Offset
                       << "]\n");
+    errs() << "alloc FI(" << FrameIdx << ") at SP[" << -Offset << "]\n";
     MFI.setObjectOffset(FrameIdx, -Offset); // Set the computed offset
   } else {
     LLVM_DEBUG(dbgs() << "alloc FI(" << FrameIdx << ") at SP[" << Offset
                       << "]\n");
+    errs() << "alloc FI(" << FrameIdx << ") at SP[" << -Offset << "]\n";
     MFI.setObjectOffset(FrameIdx, Offset);
     Offset += MFI.getObjectSize(FrameIdx);
+  }
+
+  // place canary next to the object
+  if (MFI.hasMultiCanaryObject(FrameIdx)) {
+    AdjustStackOffset(MFI, MFI.getMultiCanaryIndex(FrameIdx), StackGrowsDown, Offset, MaxAlign, Skew);
+    // AdjustStackOffset(MFI, MFI.getMultiCanaryObject(FrameIdx), StackGrowsDown, Offset, MaxAlign, Skew);
   }
 }
 
@@ -827,6 +835,8 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
 
     // Assign large stack objects first.
     for (unsigned i = 0, e = MFI.getObjectIndexEnd(); i != e; ++i) {
+      if (MFI.isMultiCanaryIndex(i))
+        continue;
       if (MFI.isObjectPreAllocated(i) &&
           MFI.getUseLocalStackAllocationBlock())
         continue;
@@ -869,6 +879,8 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
   // Then prepare to assign frame offsets to stack objects that are not used to
   // spill callee saved registers.
   for (unsigned i = 0, e = MFI.getObjectIndexEnd(); i != e; ++i) {
+    if (MFI.isMultiCanaryIndex(i))
+      continue;
     if (MFI.isObjectPreAllocated(i) && MFI.getUseLocalStackAllocationBlock())
       continue;
     if (i >= MinCSFrameIndex && i <= MaxCSFrameIndex)
@@ -909,10 +921,12 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
                           FixedCSEnd, StackBytesFree);
 
   // Now walk the objects and actually assign base offsets to them.
-  for (auto &Object : ObjectsToAllocate)
-    if (!scavengeStackSlot(MFI, Object, StackGrowsDown, MaxAlign,
-                           StackBytesFree))
-      AdjustStackOffset(MFI, Object, StackGrowsDown, Offset, MaxAlign, Skew);
+  for (auto &i : ObjectsToAllocate) {
+    // FIXME: make scavenge work
+    // if (!scavengeStackSlot(MFI, i, StackGrowsDown, MaxAlign,
+    //                        StackBytesFree))
+      AdjustStackOffset(MFI, i, StackGrowsDown, Offset, MaxAlign, Skew);
+  }
 
   // Make sure the special register scavenging spill slot is closest to the
   // stack pointer.
