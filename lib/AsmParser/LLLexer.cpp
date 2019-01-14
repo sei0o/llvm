@@ -671,6 +671,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(ssp);
   KEYWORD(sspreq);
   KEYWORD(sspstrong);
+  KEYWORD(multicanary_size);
   KEYWORD(strictfp);
   KEYWORD(safestack);
   KEYWORD(shadowcallstack);

@@ -2002,6 +2002,37 @@ bool LLParser::ParseOptionalAlignment(unsigned &Alignment) {
   return false;
 }
 
+bool LLParser::ParseOptionalMultiCanarySize(unsigned &CanarySize) {
+  CanarySize = 0;
+  if (!EatIfPresent(lltok::kw_multicanary_size))
+    return false;
+  LocTy CanaryLoc = Lex.getLoc();
+  if (ParseUInt32(CanarySize)) return true;
+  // FIXME: 32bit, 64bit
+  if (CanarySize < 4)
+    return Error(CanaryLoc, "canary must be larger than or equal to 4 bytes (on x86) or 8 bytes (on x64)");
+  return false;
+}
+
+bool LLParser::ParseOptionalCommaMultiCanarySize(unsigned &CanarySize, bool &AteExtraComma) {
+  AteExtraComma = false;
+  while (EatIfPresent(lltok::comma)) {
+    // FIXME: Metadataって何？
+    if (Lex.getKind() == lltok::MetadataVar) {
+      AteExtraComma = true;
+      return false;
+    }
+
+    if (Lex.getKind() != lltok::kw_multicanary_size)
+      return Error(Lex.getLoc(), "expected metadata or 'multicanary_size'");
+
+    if (ParseOptionalMultiCanarySize(CanarySize))
+      return true;
+  }
+
+  return false;
+}
+
 /// ParseOptionalDerefAttrBytes
 ///   ::= /* empty */
 ///   ::= AttrKind '(' 4 ')'
@@ -2077,6 +2108,36 @@ bool LLParser::ParseOptionalCommaAddrSpace(unsigned &AddrSpace,
 
     if (ParseOptionalAddrSpace(AddrSpace))
       return true;
+  }
+
+  return false;
+}
+
+bool LLParser::ParseOptionalCommaAddrSpaceOrMultiCanarySize(unsigned &AddrSpace,
+                                           LocTy &Loc,
+                                           unsigned &CanarySize,
+                                           bool &AteExtraComma) {
+  AteExtraComma = false;
+  while (EatIfPresent(lltok::comma)) {
+    // Metadata at the end is an early exit.
+    if (Lex.getKind() == lltok::MetadataVar) {
+      AteExtraComma = true;
+      return false;
+    }
+
+    Loc = Lex.getLoc();
+    switch (Lex.getKind()) {
+      case lltok::kw_addrspace:
+        if (ParseOptionalAddrSpace(AddrSpace))
+          return true;
+        break;
+      case lltok::kw_multicanary_size:
+        if (ParseOptionalMultiCanarySize(CanarySize))
+          return true;
+        break;
+      default:
+        return Error(Lex.getLoc(), "expected metadata, 'addrspace' or 'multicanary_size'");
+    }
   }
 
   return false;
@@ -6442,6 +6503,7 @@ int LLParser::ParseAlloc(Instruction *&Inst, PerFunctionState &PFS) {
   LocTy SizeLoc, TyLoc, ASLoc;
   unsigned Alignment = 0;
   unsigned AddrSpace = 0;
+  unsigned MultiCanarySize = 0;
   Type *Ty = nullptr;
 
   bool IsInAlloca = EatIfPresent(lltok::kw_inalloca);
@@ -6457,11 +6519,18 @@ int LLParser::ParseAlloc(Instruction *&Inst, PerFunctionState &PFS) {
     if (Lex.getKind() == lltok::kw_align) {
       if (ParseOptionalAlignment(Alignment))
         return true;
-      if (ParseOptionalCommaAddrSpace(AddrSpace, ASLoc, AteExtraComma))
+      if (ParseOptionalCommaAddrSpaceOrMultiCanarySize(AddrSpace, ASLoc, MultiCanarySize, AteExtraComma))
         return true;
+      // if (ParseOptionalCommaMultiCanarySize(MultiCanarySize, AteExtraComma))
+      //   return true;
     } else if (Lex.getKind() == lltok::kw_addrspace) {
       ASLoc = Lex.getLoc();
       if (ParseOptionalAddrSpace(AddrSpace))
+        return true;
+      if (ParseOptionalCommaMultiCanarySize(MultiCanarySize, AteExtraComma))
+        return true;
+    } else if (Lex.getKind() == lltok::kw_multicanary_size) {
+      if (ParseOptionalMultiCanarySize(MultiCanarySize))
         return true;
     } else if (Lex.getKind() == lltok::MetadataVar) {
       AteExtraComma = true;
@@ -6472,11 +6541,18 @@ int LLParser::ParseAlloc(Instruction *&Inst, PerFunctionState &PFS) {
         if (Lex.getKind() == lltok::kw_align) {
           if (ParseOptionalAlignment(Alignment))
             return true;
-          if (ParseOptionalCommaAddrSpace(AddrSpace, ASLoc, AteExtraComma))
+          if (ParseOptionalCommaAddrSpaceOrMultiCanarySize(AddrSpace, ASLoc, MultiCanarySize, AteExtraComma))
             return true;
+          // if (ParseOptionalCommaMultiCanarySize(MultiCanarySize, AteExtraComma))
+          //   return true;
         } else if (Lex.getKind() == lltok::kw_addrspace) {
           ASLoc = Lex.getLoc();
           if (ParseOptionalAddrSpace(AddrSpace))
+            return true;
+          if (ParseOptionalCommaMultiCanarySize(MultiCanarySize, AteExtraComma))
+            return true;
+        } else if (Lex.getKind() == lltok::kw_multicanary_size) {
+          if (ParseOptionalMultiCanarySize(MultiCanarySize))
             return true;
         } else if (Lex.getKind() == lltok::MetadataVar) {
           AteExtraComma = true;
@@ -6491,6 +6567,7 @@ int LLParser::ParseAlloc(Instruction *&Inst, PerFunctionState &PFS) {
   AllocaInst *AI = new AllocaInst(Ty, AddrSpace, Size, Alignment);
   AI->setUsedWithInAlloca(IsInAlloca);
   AI->setSwiftError(IsSwiftError);
+  AI->setMultiCanarySize(MultiCanarySize);
   Inst = AI;
   return AteExtraComma ? InstExtraComma : InstNormal;
 }

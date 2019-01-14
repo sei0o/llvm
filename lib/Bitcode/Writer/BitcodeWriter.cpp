@@ -2787,6 +2787,7 @@ void ModuleBitcodeWriter::writeInstruction(const Instruction &I,
     AlignRecord |= 1 << 6;
     AlignRecord |= AI.isSwiftError() << 7;
     Vals.push_back(AlignRecord);
+    Vals.push_back(AI.getMultiCanarySize());
     break;
   }
 

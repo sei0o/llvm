@@ -3780,6 +3780,11 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
     if (AddrSpace != 0) {
       Out << ", addrspace(" << AddrSpace << ')';
     }
+
+    unsigned MultiCanarySize = AI->getMultiCanarySize();
+    if (MultiCanarySize != 0) {
+      Out << ", multicanary_size " << MultiCanarySize;
+    }
   } else if (isa<CastInst>(I)) {
     if (Operand) {
       Out << ' ';

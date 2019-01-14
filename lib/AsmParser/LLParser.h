@@ -278,6 +278,7 @@ namespace llvm {
     void ParseOptionalDLLStorageClass(unsigned &Res);
     bool ParseOptionalCallingConv(unsigned &CC);
     bool ParseOptionalAlignment(unsigned &Alignment);
+    bool ParseOptionalMultiCanarySize(unsigned &CanarySize);
     bool ParseOptionalDerefAttrBytes(lltok::Kind AttrKind, uint64_t &Bytes);
     bool ParseScopeAndOrdering(bool isAtomic, SyncScope::ID &SSID,
                                AtomicOrdering &Ordering);
@@ -287,6 +288,8 @@ namespace llvm {
     bool ParseOptionalCommaAlign(unsigned &Alignment, bool &AteExtraComma);
     bool ParseOptionalCommaAddrSpace(unsigned &AddrSpace, LocTy &Loc,
                                      bool &AteExtraComma);
+    bool ParseOptionalCommaMultiCanarySize(unsigned &CanarySize, bool &AteExtraComma);
+    bool ParseOptionalCommaAddrSpaceOrMultiCanarySize(unsigned &AddrSpace, LocTy &Loc, unsigned &CanarySize, bool &AteExtraComma);
     bool ParseOptionalCommaInAlloca(bool &IsInAlloca);
     bool parseAllocSizeArguments(unsigned &BaseSizeArg,
                                  Optional<unsigned> &HowManyArg);

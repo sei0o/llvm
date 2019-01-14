@@ -5882,6 +5882,17 @@ const char *SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
         Chain, sdl, Src, CanaryFIN,
         MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), CanaryFI),
         /* Alignment = */ 0, MachineMemOperand::MOVolatile);
+    CanarySlot->dump();
+    BufferSlot->dump();
+    errs() << FuncInfo.StaticAllocaMap.count(CanarySlot) << "\n";
+    errs() << FuncInfo.StaticAllocaMap.count(BufferSlot) << "\n";
+    if (FuncInfo.StaticAllocaMap.find(CanarySlot) == FuncInfo.StaticAllocaMap.end()) {
+      errs() << "CanarySlot not found in StaticAllocaMap\n";
+    }
+    if (FuncInfo.StaticAllocaMap.find(BufferSlot) == FuncInfo.StaticAllocaMap.end()) {
+      errs() << "BufferSlot not found in StaticAllocaMap\n";
+    }
+    Res->dump();
     setValue(&I, Res);
     DAG.setRoot(Res);
     return nullptr;

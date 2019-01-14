@@ -4250,9 +4250,10 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
     }
 
     case bitc::FUNC_CODE_INST_ALLOCA: { // ALLOCA: [instty, opty, op, align]
-      if (Record.size() != 4)
+      if (Record.size() != 5)
         return error("Invalid record");
       uint64_t AlignRecord = Record[3];
+      uint64_t MultiCanarySize = Record[4];
       const uint64_t InAllocaMask = uint64_t(1) << 5;
       const uint64_t ExplicitTypeMask = uint64_t(1) << 6;
       const uint64_t SwiftErrorMask = uint64_t(1) << 7;
@@ -4283,6 +4284,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       AllocaInst *AI = new AllocaInst(Ty, AS, Size, Align);
       AI->setUsedWithInAlloca(InAlloca);
       AI->setSwiftError(SwiftError);
+      AI->setMultiCanarySize(MultiCanarySize);
       I = AI;
       InstructionList.push_back(I);
       break;

@@ -59,6 +59,7 @@ class LLVMContext;
 /// an instruction to allocate memory on the stack
 class AllocaInst : public UnaryInstruction {
   Type *AllocatedType;
+  unsigned MultiCanarySize = 0;
 
 protected:
   // Note: Instruction needs to be a friend here to call cloneImpl.
@@ -142,6 +143,12 @@ public:
     setInstructionSubclassData((getSubclassDataFromInstruction() & ~64) |
                                (V ? 64 : 0));
   }
+
+  unsigned getMultiCanarySize() const {
+    return MultiCanarySize;
+  }
+
+  void setMultiCanarySize(unsigned S) { MultiCanarySize = S; }
 
   // Methods for support type inquiry through isa, cast, and dyn_cast:
   static bool classof(const Instruction *I) {

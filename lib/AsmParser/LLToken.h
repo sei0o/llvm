@@ -214,6 +214,7 @@ enum Kind {
   kw_ssp,
   kw_sspreq,
   kw_sspstrong,
+  kw_multicanary_size,
   kw_safestack,
   kw_shadowcallstack,
   kw_sret,
