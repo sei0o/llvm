@@ -547,6 +547,12 @@ static inline void
 AdjustStackOffset(MachineFrameInfo &MFI, int FrameIdx,
                   bool StackGrowsDown, int64_t &Offset,
                   unsigned &MaxAlign, unsigned Skew) {
+  // place canary before the object (stack objects which is put earlier have higher addresses, maybe)
+  if (MFI.hasMultiCanaryObject(FrameIdx)) {
+    AdjustStackOffset(MFI, MFI.getMultiCanaryIndex(FrameIdx), StackGrowsDown, Offset, MaxAlign, Skew);
+    // AdjustStackOffset(MFI, MFI.getMultiCanaryObject(FrameIdx), StackGrowsDown, Offset, MaxAlign, Skew);
+  }
+
   // If the stack grows down, add the object size to find the lowest address.
   if (StackGrowsDown)
     Offset += MFI.getObjectSize(FrameIdx);
@@ -571,12 +577,6 @@ AdjustStackOffset(MachineFrameInfo &MFI, int FrameIdx,
     errs() << "alloc FI(" << FrameIdx << ") at SP[" << -Offset << "]\n";
     MFI.setObjectOffset(FrameIdx, Offset);
     Offset += MFI.getObjectSize(FrameIdx);
-  }
-
-  // place canary next to the object
-  if (MFI.hasMultiCanaryObject(FrameIdx)) {
-    AdjustStackOffset(MFI, MFI.getMultiCanaryIndex(FrameIdx), StackGrowsDown, Offset, MaxAlign, Skew);
-    // AdjustStackOffset(MFI, MFI.getMultiCanaryObject(FrameIdx), StackGrowsDown, Offset, MaxAlign, Skew);
   }
 }
 
